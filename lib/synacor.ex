@@ -4,6 +4,7 @@ defmodule Synacor do
   def start() do
     Synacor.Memory.start_link
     Synacor.Stack.start_link
+    Synacor.Terminal.start_link
     b = File.read!("challenge.bin")
     {:ok, length} = load_program(b, 0)
     IO.puts "ELIXIR>>>> Loaded #{length} values"
@@ -24,8 +25,6 @@ defmodule Synacor do
 
   def execute_program(addr) do
     v = Synacor.Memory.read(addr)
-    #IO.puts "addr #{addr} (#{addr*2}) opcode #{v}"
-    #Synacor.Memory.dump_registers()
     next_addr = eval(v, addr)
     execute_program(next_addr)
   end
@@ -143,12 +142,18 @@ defmodule Synacor do
     a = Synacor.Stack.pop()
     a
   end
-  def eval(21, addr), do: addr + 1
   def eval(19, addr) do
     v = Synacor.Memory.read(addr + 1)
     IO.write <<v>>
     addr + 2
   end
+  def eval(20, addr) do
+    a = Synacor.Memory.read_noconv(addr + 1)
+    b = Synacor.Terminal.next_char()
+    :ok = Synacor.Memory.write(a, b)
+    addr + 2
+  end
+  def eval(21, addr), do: addr + 1
 
   def eval(opcode, addr) do
     IO.puts "ELIXIR>>>> unknown opcode #{inspect(opcode)} at addr #{addr} (#{addr * 2})"
